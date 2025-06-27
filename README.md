@@ -10,11 +10,8 @@ A multi-purpose discord self-bot.
 ## Requirments:
 - Python
 - Python Libraries:
-  - pillow
-  - mss
-  - opencv-python
-  - numpy
-  - pynput
+  - discord.py-self
+  - aiohttp
 
 ## How to Run:
 - Run install.bat to easily install all requirements. (only works on windows)
