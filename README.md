@@ -12,6 +12,8 @@ A multi-purpose discord self-bot.
 - Python Libraries:
   - discord.py-self
   - aiohttp
+  - spotipy
+  - requests
 
 ## How to Run:
 - Run install.bat to easily install all requirements. (only works on windows)
