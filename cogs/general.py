@@ -21,6 +21,7 @@ class General(commands.Cog):
                            f"  - Server\n"
                            f"  - User\n"
                            f"  - Moderation\n"
+                           f"  - Spotify\n"
                            f"  - Config\n"
                            f"```")
         else:
