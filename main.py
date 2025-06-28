@@ -22,7 +22,7 @@ lumea = commands.Bot(command_prefix=data.get("prefix"), help_command=None, self_
 @lumea.event
 async def on_ready():
     lumea.uptime = datetime.datetime.now(datetime.UTC)
-    lumea.data = manifest
+    lumea.manifest = manifest
     lumea.data = data
     lumea.config = config
     await load_cogs()
