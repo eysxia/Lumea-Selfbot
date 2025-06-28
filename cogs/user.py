@@ -20,8 +20,7 @@ class User(commands.Cog):
 
     @commands.command(brief="User", usage="(user) (file)", aliases=["av"])
     async def avatar(self, ctx, user: typing.Union[discord.Member, discord.User]=None):
-        if user == None:
-            user = self.lumea.user
+        user = user or self.lumea.user
 
         if ctx.message.attachments:
             attachment = ctx.message.attachments[0]
@@ -44,8 +43,7 @@ class User(commands.Cog):
 
     @commands.command(brief="User", usage="(user)", aliases=["displayavatar"])
     async def displayav(self, ctx, user: typing.Union[discord.Member, discord.User]=None):
-        if user == None:
-            user = self.lumea.user
+        user = user or self.lumea.user
 
         user = ctx.guild.get_member(user.id)
         avatar_url = user.avatar.url if user.avatar else user.display_avatar.url
@@ -62,11 +60,10 @@ class User(commands.Cog):
 
     @commands.command(brief="User", usage="(user)", aliases=["bnr"])
     async def banner(self, ctx, user: typing.Union[discord.Member, discord.User]=None):
-        if user == None:
-            user = self.lumea.user
+        user = user or self.lumea.user
 
         if user.banner == None:
-            return await send_log_message(self, ctx, "[!] Failed to retrieve users banner!")
+            return await send_log_message(self, ctx, f"[!] {user.mention} has no banner!")
         
         async with aiohttp.ClientSession() as session:
             async with session.get(user.banner.url) as resp:

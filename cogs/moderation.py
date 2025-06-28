@@ -11,8 +11,7 @@ class Moderation(commands.Cog):
 
     @commands.command(brief="Moderation", usage="(channel) (seconds)", aliases=["slowmo", "slow", "sm"])
     async def slowmode(self, ctx, channel: discord.Channel=None, seconds: int=0):
-        if channel == None:
-            channel = ctx.channel
+        channel = channel or ctx.channel
 
         if seconds == 0:
             msg = f"Disabled slowmode for {channel.mention}"
@@ -22,6 +21,18 @@ class Moderation(commands.Cog):
         await ctx.channel.edit(slowmode_delay=seconds)
         await send_log_message(self, ctx, f"[?] {msg}")
 
+
+    @commands.command(brief="Moderation", usage="(channel)", aliases=["lockdown", "l"])
+    async def lock(self, ctx, channel: discord.TextChannel=None):
+        channel = channel or ctx.channel
+        overwrite = channel.overwrites_for(ctx.guild.default_role)
+
+        currently_locked = overwrite.send_messages is False
+        overwrite.send_messages = None if currently_locked else False
+
+        await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+        return await send_log_message(self, ctx, f"[?] {channel.mention} " + "unlocked" if currently_locked else "locked")
+    
 
     @commands.command(brief="Moderation", usage="[user]", aliases=["softb", "sb"])
     async def softban(self, ctx, user: discord.Member=None):
