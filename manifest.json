@@ -1,5 +1,6 @@
 {
     "lumea": {
         "version": 1.1
-    }
+    },
+    "spotify_auth_url": "https://eysxia.dev/projects/lumea/spotify"
 }

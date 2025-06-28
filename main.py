@@ -16,6 +16,10 @@ with open("./config/config.json", "r") as f:
     config = json.loads(f.read())
 
 
+with open("./config/spotify.json", "r") as f:
+    spotify = json.loads(f.read())
+
+
 lumea = commands.Bot(command_prefix=data.get("prefix"), help_command=None, self_bot=True)
 
 
@@ -25,6 +29,7 @@ async def on_ready():
     lumea.manifest = manifest
     lumea.data = data
     lumea.config = config
+    lumea.spotify = spotify
     await load_cogs()
     
     clear_console()
