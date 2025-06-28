@@ -1,10 +1,27 @@
 from discord.ext import commands
-from utils.util import print_centered
+from utils.util import print_centered, send_log_message
 
 
 class Events(commands.Cog):
     def __init__(self, lumea):
         self.lumea = lumea
+
+
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, commands.MissingRequiredArgument):
+            await send_log_message(self, ctx, f"[!] Missing command params for {ctx.command.name}: {error.param.name}")
+            
+        elif isinstance(error, commands.MissingPermissions):
+            perms = ', '.join(error.missing_perms)
+            await send_log_message(self, ctx, f"[!] Missing permissions to do that!")
+
+        elif isinstance(error, commands.BotMissingPermissions):
+            perms = ', '.join(error.missing_perms)
+            await send_log_message(self, ctx, f"[!] Missing permissions to do that!")
+
+        elif isinstance(error, commands.CommandNotFound):
+            return 
 
 
     @commands.Cog.listener()

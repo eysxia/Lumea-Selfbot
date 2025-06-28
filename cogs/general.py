@@ -20,6 +20,7 @@ class General(commands.Cog):
                            f"  - General\n"
                            f"  - Server\n"
                            f"  - User\n"
+                           f"  - Moderation\n"
                            f"  - Config\n"
                            f"```")
         else:
