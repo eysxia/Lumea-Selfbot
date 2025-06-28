@@ -2,12 +2,12 @@ from discord.ext import commands
 from utils.util import save_config, send_log_message
 
 
-class Other(commands.Cog):
+class Config(commands.Cog):
     def __init__(self, lumea):
         self.lumea = lumea
 
 
-    @commands.command(brief="Other")
+    @commands.command(brief="Config")
     async def logging(self, ctx):
         if self.lumea.config.get("log_to_console") is True:
             self.lumea.config["log_to_console"] = False
@@ -18,7 +18,7 @@ class Other(commands.Cog):
         save_config(self, "config")
 
 
-    @commands.command(brief="Other")
+    @commands.command(brief="Config")
     async def autoedit(self, ctx):
         if self.lumea.config.get("auto_edit_message") is True:
             self.lumea.config["auto_edit_message"] = False
@@ -29,7 +29,7 @@ class Other(commands.Cog):
         save_config(self, "config")
 
 
-    @commands.command(brief="Other")
+    @commands.command(brief="Config")
     async def procedit(self, ctx):
         if self.lumea.config.get("process_edited_commands") is True:
             self.lumea.config["process_edited_commands"] = False
@@ -41,4 +41,4 @@ class Other(commands.Cog):
 
 
 async def setup(lumea):
-    await lumea.add_cog(Other(lumea))
+    await lumea.add_cog(Config(lumea))

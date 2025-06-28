@@ -20,7 +20,7 @@ class General(commands.Cog):
                            f"  - General\n"
                            f"  - Server\n"
                            f"  - User\n"
-                           f"  - Other\n"
+                           f"  - Config\n"
                            f"```")
         else:
             category = category.lower().capitalize()
