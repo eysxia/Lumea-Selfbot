@@ -41,4 +41,4 @@ async def send_log_message(self, ctx, message):
 
 async def save_config(self, file):
     with open(f".../config/{file}.json", "w") as f:
-        f.write(json.dumps(self.lumea.config))
+        f.write(json.dumps(getattr(self.lumea, file, None)))
