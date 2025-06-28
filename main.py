@@ -9,7 +9,7 @@ from utils.util import clear_console, print_centered
 with open("./manifest.json", "r") as f:
     manifest = json.loads(f.read())
 
-with open("./config/bot_data.json", "r") as f:
+with open("./config/data.json", "r") as f:
     data = json.loads(f.read())
 
 with open("./config/config.json", "r") as f:

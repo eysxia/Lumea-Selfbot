@@ -15,7 +15,7 @@ A multi-purpose discord self-bot.
 
 ## How to Run:
 - Run install.bat to easily install all requirements. (only works on windows)
-- Configure config/bot_data.json for your desired command prefix, and your token.
+- Configure config/data.json for your desired command prefix, and your token.
 - Run run.bat or cd into folder and run main.py
 
 ## Notes:
