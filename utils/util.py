@@ -89,7 +89,7 @@ async def handle_spotify_auth(self, ctx):
             self.spotify_client.transfer_playback(device_id=target_id, force_play=False)
     except spotipy.SpotifyException as e:
         if e.http_status == 401:
-            if self.lumea.spotify.get("refresh_token"):
+            if self.lumea.spotify.get("refresh_token") and self.lumea.spotify.get("refresh_token") != "":
                 response = requests.post(self.lumea.manifest.get("spotify_auth_url"), data={"refresh_token": self.lumea.spotify["refresh_token"]})
                 access_token = response.json().get("access_token")
                 if access_token:
