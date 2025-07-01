@@ -32,8 +32,9 @@ async def send_log_message(self, ctx, message, print=True):
 
     if print:
         if self.lumea.config.get("log_to_console") is True:
-            print_centered(f"{color}{message}")
-        
+            msg = re.sub(r'[^a-zA-Z0-9\s.,!?#]', '', message)
+            print_centered(f"{color}{msg}")
+
     message = await ctx.send(f"> **{message[:3]}**{message[3:].replace("<@", "<@!")}")
     await asyncio.sleep(3)
     await message.delete()
