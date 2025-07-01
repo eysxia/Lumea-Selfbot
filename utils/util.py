@@ -71,22 +71,9 @@ def parse_duration(duration_str: str) -> datetime.timedelta:
 
 async def handle_spotify_auth(self, ctx):
     try:
-        playback = self.spotify_client.current_playback()
-        devices = self.spotify_client.devices().get("devices", [])
-
-        if not playback or not playback.get("device") or not playback["device"]["is_active"]:
-            last_device = playback["device"] if playback and playback.get("device") else None
-            last_device_id = last_device["id"] if last_device else None
-
-        if last_device_id and any(d["id"] == last_device_id for d in devices):
-            target_id = last_device_id
-        elif devices:
-            target_id = devices[0]["id"]
-        else:
-            target_id = None
-
-        if target_id:
-            self.spotify_client.transfer_playback(device_id=target_id, force_play=False)
+        spotify_client = spotipy.Spotify(auth=self.lumea.spotify.get("access_token"))
+        spotify_client.current_playback()
+        return spotify_client
     except spotipy.SpotifyException as e:
         if e.http_status == 401:
             if self.lumea.spotify.get("refresh_token") and self.lumea.spotify.get("refresh_token") != "":
@@ -95,9 +82,9 @@ async def handle_spotify_auth(self, ctx):
                 if access_token:
                     self.lumea.spotify["access_token"] = access_token
                     save_config(self, "spotify")
-                    self.spotify_client = spotipy.Spotify(auth=self.lumea.spotify.get("access_token"))
-                    return True
+                    spotify_client = spotipy.Spotify(auth=self.lumea.spotify.get("access_token"))
+                    return spotify_client
                 
             await ctx.send("**[!] Youre spotify token is invalid or unset!")
             await ctx.send(f"Get your token **[here]({self.lumea.manifest.get("spotify_auth_url")}**, and set it using `{self.lumea.data.get("prefix")}sauth [access_token] [refresh_token]` or manulally set them in the config files.")
-            return False
+            return None

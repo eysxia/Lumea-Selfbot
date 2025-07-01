@@ -5,7 +5,7 @@
 ![stars](https://img.shields.io/github/stars/eysxia/Lumea-Selfbot)
 ![lincense](https://img.shields.io/github/license/eysxia/Lumea-Selfbot)
 
-A multi-purpose discord self-bot.
+A Multi-Purpose Discord Self-Bot.
 
 ## Requirments:
 - Python

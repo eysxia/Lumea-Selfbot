@@ -1,5 +1,5 @@
 import discord, typing
-import spotipy, asyncio
+import asyncio
 from discord.ext import commands
 from utils.util import save_config, send_log_message, handle_spotify_auth
 
@@ -7,7 +7,6 @@ from utils.util import save_config, send_log_message, handle_spotify_auth
 class Spotify(commands.Cog):
     def __init__(self, lumea):
         self.lumea = lumea
-        self.spotify_client = spotipy.Spotify(auth=lumea.spotify.get("access_token"))
 
 
     @commands.command(brief="Spotify", usage="[access_token] [refresh_token]", aliases=["spotifyauth"])
@@ -21,13 +20,17 @@ class Spotify(commands.Cog):
         await send_log_message(self, ctx, "[?] Successfully set Spotify data!")
         
 
-    @commands.command(brief="Spotify", usage="(user)")
+    @commands.command(brief="Spotify", usage="(user)", aliases=["listening"])
     async def playing(self, ctx, user: typing.Optional[typing.Union[discord.Member, discord.User]]=None):
         user = user or self.lumea.user
 
         if user == self.lumea.user:
             try:
-                current = self.spotify_client.current_playback()
+                spotify_client = await handle_spotify_auth(self, ctx)
+                if spotify_client is None:
+                    raise
+
+                current = spotify_client.current_playback()
                 if current and current.get('is_playing'):
                     track = current['item']
                     name = track['name']
@@ -48,9 +51,10 @@ class Spotify(commands.Cog):
             await send_log_message(self, ctx, f"[?] {user.mention} is not listening to Spotify.")
 
 
-    @commands.command(brief="Spotify", usage="[url/name]", aliases=["resume", "pause", "p"])
+    @commands.command(brief="Spotify", usage="[url/name]", aliases=["resume", "p"])
     async def play(self, ctx, *, song=None):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
 
         if song:
@@ -67,21 +71,21 @@ class Spotify(commands.Cog):
                     track_uri = f"spotify:{url_type}:{uri_id}"
 
                     if url_type == "track":
-                        self.spotify_client.start_playback(uris=[track_uri])
-                        track = self.spotify_client.track(track_uri)
+                        spotify_client.start_playback(uris=[track_uri])
+                        track = spotify_client.track(track_uri)
                         track_name = track['name']
                         track_url = track['external_urls']['spotify']
                         artist = ", ".join(f"**{a['name']}**" for a in track['artists'])
                     elif url_type == "playlist":
-                        self.spotify_client.start_playback(context_uri=track_uri)
-                        playlist = self.spotify_client.playlist(track_uri)
+                        spotify_client.start_playback(context_uri=track_uri)
+                        playlist = spotify_client.playlist(track_uri)
                         track_name = playlist['name']
                         track_url = playlist['external_urls']['spotify']
                         artist = None
                     else:
                         pass
                 else:
-                    results = self.spotify_client.search(q=song, type='track', limit=1)
+                    results = spotify_client.search(q=song, type='track', limit=1)
                     tracks = results.get('tracks', {}).get('items', [])
                     if tracks:
                         track = tracks[0]
@@ -89,9 +93,9 @@ class Spotify(commands.Cog):
                         track_name = track['name']
                         track_url = track['external_urls']['spotify']
                         artist = ", ".join(f"**{a['name']}**" for a in track['artists'])
-                        self.spotify_client.start_playback(uris=[track_uri])
+                        spotify_client.start_playback(uris=[track_uri])
                     else:
-                        results = self.spotify_client.search(q=song, type='playlist', limit=1)
+                        results = spotify_client.search(q=song, type='playlist', limit=1)
                         playlists = results.get('playlists', {}).get('items', [])
                         if not playlists:
                             return await send_log_message(self, ctx, f"[!] `{song}` could not be found as a song or playlist.")
@@ -100,7 +104,7 @@ class Spotify(commands.Cog):
                         track_name = playlist['name']
                         track_url = playlist['external_urls']['spotify']
                         artist = None
-                        self.spotify_client.start_playback(context_uri=track_uri)
+                        spotify_client.start_playback(context_uri=track_uri)
 
                 msg = f"**[?]** Now playing **__[{track_name}]({track_url})__**"
                 if artist:
@@ -109,24 +113,39 @@ class Spotify(commands.Cog):
             except:
                 return await send_log_message(self, ctx, "[!] Invalid input or playback failed.")
 
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         if not current:
             return await send_log_message(self, ctx, "[!] No active Spotify session found.")
 
         if current['is_playing']:
-            self.spotify_client.pause_playback()
-            return await send_log_message(self, ctx, "[?] Spotify Paused.")
-
-        self.spotify_client.start_playback()
+            return await send_log_message(self, ctx, "[?] Spotify is already unpaused.")
+        spotify_client.start_playback()
         await send_log_message(self, ctx, "[?] Spotify Resumed.")
 
 
-    @commands.command(brief="Spotify", usage="[url/name]")
+    @commands.command(brief="Spotify", aliases=["stop"])
+    async def pause(self, ctx):
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
+            return
+
+        current = spotify_client.current_playback()
+        if not current:
+            return await send_log_message(self, ctx, "[!] No active Spotify session found.")
+
+        if current['is_playing']:
+            spotify_client.pause_playback()
+            return await send_log_message(self, ctx, "[?] Spotify Paused.")
+        await send_log_message(self, ctx, "[?] Spotify already paused.")
+
+
+    @commands.command(brief="Spotify", usage="[url/name]", aliases=["q"])
     async def queue(self, ctx, *, song):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
         
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         if not current:
             return await send_log_message(self, ctx, "[!] No active Spotify session found.")
 
@@ -142,14 +161,14 @@ class Spotify(commands.Cog):
                 else:
                     track_uri = song
 
-                track = self.spotify_client.track(track_uri)
+                track = spotify_client.track(track_uri)
                 track_name = track['name']
                 track_url = track['external_urls']['spotify']
 
             except:
                 return await send_log_message(self, ctx, "[!] Failed to queue: Invalid Spotify link.")
         else:
-            results = self.spotify_client.search(q=song, type="track", limit=1)
+            results = spotify_client.search(q=song, type="track", limit=1)
             tracks = results.get('tracks', {}).get('items', [])
             if not tracks:
                 return await send_log_message(self, ctx, f"[!] `{song}` song/playlist could not be found.")
@@ -160,7 +179,7 @@ class Spotify(commands.Cog):
             track_url = track['external_urls']['spotify']
 
         try:
-            self.spotify_client.add_to_queue(track_uri)
+            spotify_client.add_to_queue(track_uri)
             await ctx.send(f"**[?]** Added to queue: **__[{track_name}]({track_url})__**")
         except:
             await send_log_message(self, ctx, f"[!] Failed to add song to queue.")
@@ -168,14 +187,15 @@ class Spotify(commands.Cog):
 
     @commands.command(brief="Spotify", aliases=["replay", "r"])
     async def restart(self, ctx):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
         
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         if not current:
             return await send_log_message(self, ctx, "[!] No active Spotify session found.")
 
-        self.spotify_client.seek_track(0)
+        spotify_client.seek_track(0)
         track = current['item']
         name = track['name']
         artist = ", ".join(f"**{a['name']}**" for a in track['artists'])
@@ -183,18 +203,19 @@ class Spotify(commands.Cog):
         await ctx.send(f"**[?]** Now playing **__[{name}]({url})__** by {artist}")
 
 
-    @commands.command(brief="Spotify", aliases=["skip", "n"])
+    @commands.command(brief="Spotify", aliases=["skip"])
     async def next(self, ctx):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
         
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         if not current:
             return await send_log_message(self, ctx, "[!] No active Spotify session found.")
         
-        self.spotify_client.next_track()
+        spotify_client.next_track()
         await asyncio.sleep(1)
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         track = current['item']
         name = track['name']
         artist = ", ".join(f"**{a['name']}**" for a in track['artists'])
@@ -205,16 +226,17 @@ class Spotify(commands.Cog):
 
     @commands.command(brief="Spotify", aliases=["prev", "back"])
     async def previous(self, ctx):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
         
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         if not current:
             return await send_log_message(self, ctx, "[!] No active Spotify session found.")
 
-        self.spotify_client.previous_track()
+        spotify_client.previous_track()
         await asyncio.sleep(1)
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         track = current['item']
         name = track['name']
         artist = ", ".join(f"**{a['name']}**" for a in track['artists'])
@@ -223,12 +245,13 @@ class Spotify(commands.Cog):
         await ctx.send(f"**[?]** Now playing **__[{name}]({url})__** by {artist}")
 
 
-    @commands.command(brief="Spotify", usage="[url/name]", aliases=["playplaylist", "pp"])
+    @commands.command(brief="Spotify", usage="[url/name]", aliases=["playplaylist", "pplaylist", "plist", "pp"])
     async def playlist(self, ctx, *, song):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
 
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         if not current:
             return await send_log_message(self, ctx, "[!] No active Spotify session found.")
 
@@ -244,13 +267,13 @@ class Spotify(commands.Cog):
                 else:
                     playlist_uri = song
 
-                playlist = self.spotify_client.playlist(playlist_uri)
+                playlist = spotify_client.playlist(playlist_uri)
                 playlist_name = playlist['name']
                 playlist_url = playlist['external_urls']['spotify']
             except:
                 return await send_log_message(self, ctx, "[!] Invalid Spotify playlist link.")
         else:
-            results = self.spotify_client.search(q=song, type='playlist', limit=10)
+            results = spotify_client.search(q=song, type='playlist', limit=10)
             playlists = results.get('playlists', {}).get('items', [])
 
             match = next((pl for pl in playlists if pl['name'].lower() == song.lower()), None)
@@ -261,17 +284,18 @@ class Spotify(commands.Cog):
             playlist_name = match['name']
             playlist_url = match['external_urls']['spotify']
 
-        self.spotify_client.start_playback(context_uri=playlist_uri)
+        spotify_client.start_playback(context_uri=playlist_uri)
         await ctx.send(f"**[?]** Now playing playlist: **__[{playlist_name}]({playlist_url})__**")
 
 
-    @commands.command(brief="Spotify", usage="(on/off)")
+    @commands.command(brief="Spotify", usage="(on/off)", aliases=["s"])
     async def shuffle(self, ctx, mode: str=None):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
 
         if not mode:
-            current = self.spotify_client.current_playback()
+            current = spotify_client.current_playback()
             if not current:
                 return await send_log_message(self, ctx, "[!] No active Spotify session found.")
         
@@ -279,22 +303,23 @@ class Spotify(commands.Cog):
             return await send_log_message(self, ctx, f"[?] Shuffle is currently **{state}**.")
 
         if mode.lower() in ["on", "true"]:
-            self.spotify_client.shuffle(state=True)
+            spotify_client.shuffle(state=True)
             return await send_log_message(self, ctx, "[?] Shuffle mode enabled.")
         elif mode.lower() in ["off", "false"]:
-            self.spotify_client.shuffle(state=False)
+            spotify_client.shuffle(state=False)
             return await send_log_message(self, ctx, "[?] Shuffle mode disabled.")
         else:
             return await send_log_message(self, ctx, "[!] Invalid option. Use `on` or `off`.")
         
 
-    @commands.command(brief="Set Spotify repeat mode", usage="(off/track/playlist)")
+    @commands.command(brief="Set Spotify repeat mode", usage="(off/track/playlist)", aliases=["rp"])
     async def repeat(self, ctx, mode: str = None):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
 
         if not mode:
-            current = self.spotify_client.current_playback()
+            current = spotify_client.current_playback()
             if not current:
                 return await send_log_message(self, ctx, "[!] No active Spotify session found.")
             
@@ -305,16 +330,17 @@ class Spotify(commands.Cog):
         if mode not in ["off", "track", "playlist"]:
             return await send_log_message(self, ctx, "[!] Invalid repeat mode. Use `off`, `track`, or `playlist`.")
 
-        self.spotify_client.repeat(state=mode if mode != "playlist" else "context")
+        spotify_client.repeat(state=mode if mode != "playlist" else "context")
         return await send_log_message(self, ctx, f"[?] Repeat mode set to **{mode.upper()}**.")
 
 
-    @commands.command(brief="Spotify", usage="(vol)", aliases=["vol"])
+    @commands.command(brief="Spotify", usage="(vol)", aliases=["vol", "v"])
     async def volume(self, ctx, vol: int=None):
-        if await handle_spotify_auth(self, ctx) != True:
+        spotify_client = await handle_spotify_auth(self, ctx)
+        if spotify_client is None:
             return
 
-        current = self.spotify_client.current_playback()
+        current = spotify_client.current_playback()
         if not current:
             return await send_log_message(self, ctx, "[!] No active Spotify session found.")
 
@@ -326,7 +352,7 @@ class Spotify(commands.Cog):
             return await send_log_message(self, ctx, "[!] Volume must be between 0 and 100.")
 
         try:
-            self.spotify_client.volume(volume_percent=vol)
+            spotify_client.volume(volume_percent=vol)
             return await send_log_message(self, ctx, f"[?] Volume set to: **{device['volume_percent']}**")
         except:
             await send_log_message(self, ctx, "[!] Failed to set volume.")

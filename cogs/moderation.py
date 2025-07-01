@@ -10,7 +10,7 @@ class Moderation(commands.Cog):
 
 
     @commands.command(brief="Moderation", usage="(channel) (seconds)", aliases=["slowmo", "slow", "sm"])
-    async def slowmode(self, ctx, channel: discord.Channel=None, seconds: int=0):
+    async def slowmode(self, ctx, channel: discord.TextChannel=None, seconds: int=0):
         channel = channel or ctx.channel
 
         if seconds == 0:
@@ -26,12 +26,27 @@ class Moderation(commands.Cog):
     async def lock(self, ctx, channel: discord.TextChannel=None):
         channel = channel or ctx.channel
         overwrite = channel.overwrites_for(ctx.guild.default_role)
-
-        currently_locked = overwrite.send_messages is False
-        overwrite.send_messages = None if currently_locked else False
-
+        if overwrite.send_messages == False:
+            msg = f"[!] {channel.mention} is already locked."
+        else:
+            overwrite.send_messages = False
+            msg = f"[?] {channel.mention} locked!"
         await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
-        return await send_log_message(self, ctx, f"[?] {channel.mention} " + "unlocked" if currently_locked else "locked")
+        return await send_log_message(self, ctx, f"{msg}")
+
+
+    @commands.command(brief="Moderation", usage="(channel)", aliases=["unlock", "ul"])
+    async def unlock(self, ctx, channel: discord.TextChannel=None):
+        channel = channel or ctx.channel
+        overwrite = channel.overwrites_for(ctx.guild.default_role)
+        if overwrite.send_messages != False:
+            msg = f"[!] {channel.mention} is already unlocked."
+        else:
+            overwrite.send_messages = None
+            msg = f"[?] {channel.mention} unlocked!"
+        overwrite.send_messages = None
+        await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+        return await send_log_message(self, ctx, f"{msg}")
     
 
     @commands.command(brief="Moderation", usage="[user]", aliases=["softb", "sb"])
@@ -115,20 +130,36 @@ class Moderation(commands.Cog):
         await send_log_message(self, ctx, f"[?] {msg}")
 
 
-    @commands.command(brief="Moderation", usage="[role] [user]", aliases=["unrole", "r"])
+    @commands.command(brief="Moderation", usage="[role] [user]", aliases=["addrole", "ar"])
     async def role(self, ctx, role: discord.Role, user: discord.Member=None):
         if user is None:
             if ctx.message.reference:
                 user = await ctx.channel.fetch_message(ctx.message.reference.message_id).author
             else:
                 return
-            
+
         if role in user.roles:
-            await user.remove_roles(role)
-            msg = f"Removed role {role.mention} from {user.mention}"
+            msg = f"{user.mention} already has the role {role.mention}"
         else:
             await user.add_roles(role)
             msg = f"Added role {role.mention} to {user.mention}"
+
+        return await send_log_message(self, ctx, f"[?] {msg}")
+
+
+    @commands.command(brief="Moderation", usage="[role] [user]", aliases=["removerole", "rr"])
+    async def unrole(self, ctx, role: discord.Role, user: discord.Member=None):
+        if user is None:
+            if ctx.message.reference:
+                user = await ctx.channel.fetch_message(ctx.message.reference.message_id).author
+            else:
+                return
+
+        if role not in user.roles:
+            msg = f"{user.mention} does not have the role {role.mention}"
+        else:
+            await user.remove_roles(role)
+            msg = f"Removed role {role.mention} from {user.mention}"
 
         return await send_log_message(self, ctx, f"[?] {msg}")
 

@@ -1,4 +1,5 @@
 from discord.ext import commands
+from spotipy.exceptions import SpotifyException
 from utils.util import print_centered, send_log_message
 
 
@@ -20,9 +21,10 @@ class Events(commands.Cog):
             perms = ', '.join(error.missing_perms)
             await send_log_message(self, ctx, f"[!] Missing permissions to do that!")
 
-        elif isinstance(error, commands.CommandNotFound):
-            return 
-
+        elif isinstance(error, SpotifyException):
+            if error.http_status == 403 and "premium" in str(error).lower():
+                await send_log_message(self, ctx, "[!] This command requires Spotify Premium!")
+            
 
     @commands.Cog.listener()
     async def on_command(self, ctx):
