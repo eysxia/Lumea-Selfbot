@@ -22,3 +22,4 @@ A Multi-Purpose Discord Self-Bot.
 
 ## Notes:
 1. This project is not finished. More commands are to come in the near future!
+2. The spotify commands require premium!! This is due to how spotifys api is built, there is no workaround atm.
